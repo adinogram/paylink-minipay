@@ -57,28 +57,29 @@ export default function App() {
     setIsConnecting(true);
     setError(null);
 
+    // AI Studio specific: Notify user if extension might be blocked by iframe
+    const isIframe = window.self !== window.top;
+
     try {
       const client = createWalletClient({
         chain: celoSepolia,
         transport: custom(ethereum)
       });
 
-      // Request account access
+      // Request account access - this is where it might hang in an iframe
       const [account] = await client.requestAddresses();
       
       if (!account) {
-        throw new Error("No accounts found.");
+        throw new Error("Connection request rejected or no accounts found.");
       }
 
       // Check and switch network
       try {
         await client.switchChain({ id: celoSepolia.id });
       } catch (switchError: any) {
-        // This error code indicates that the chain has not been added to MetaMask.
         if (switchError.code === 4902) {
           await client.addChain({ chain: celoSepolia });
         } else {
-          // Some wallets might not support switchChain via RPC, continue anyway
           console.warn("Chain switch warning:", switchError);
         }
       }
@@ -87,7 +88,15 @@ export default function App() {
       setWalletClient(client);
     } catch (err: any) {
       console.error("Connection error:", err);
-      setError(err.message || "Failed to connect wallet.");
+      let msg = err.message || "Failed to connect wallet.";
+      
+      if (isIframe && (err.code === -32002 || msg.includes("already pending"))) {
+        msg = "Request already pending. Please check MetaMask or open the app in a new tab (top right icon) to bypass iframe restrictions.";
+      } else if (isIframe) {
+        msg = "Connection failed. Browsers often block wallet extensions in iframes. Please try opening this app in a new tab using the icon above the preview.";
+      }
+      
+      setError(msg);
     } finally {
       setIsConnecting(false);
     }

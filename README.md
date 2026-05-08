@@ -1,43 +1,20 @@
-# PayLink MiniPay
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-PayLink MiniPay is a lightweight payment-link application built on Celo and designed for MiniPay compatibility.
+# Run and deploy your AI Studio app
 
-Users can generate simple payment links that allow anyone to quickly send stablecoin payments using their wallet.
+This contains everything you need to run your app locally.
 
----
+View your app in AI Studio: https://ai.studio/apps/80a166d8-28c0-4f7d-8197-94c832e9fdb2
 
-## Features
+## Run Locally
 
-- Connect wallet using viem
-- MiniPay-compatible wallet detection
-- Generate payment links
-- Send CELO payments
-- Lightweight mobile-friendly UI
-- Built on Celo
+**Prerequisites:**  Node.js
 
----
 
-## Tech Stack
-
-- React + Vite
-- viem
-- Celo
-- MiniPay compatibility
-
----
-
-## How It Works
-
-1. User enters payment amount
-2. App generates a payment link
-3. Recipient opens link
-4. Wallet connects
-5. Payment is sent onchain
-
----
-
-## Local Development
-
-```bash
-npm install
-npm run dev
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
