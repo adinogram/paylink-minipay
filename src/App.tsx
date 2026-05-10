@@ -33,14 +33,15 @@ export default function App() {
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null);
   const [publicClient, setPublicClient] = useState<PublicClient | null>(null);
 
-  // Initialize public client
   useEffect(() => {
+    console.log("App mounted, initializing clients...");
     try {
       const pc = createPublicClient({
         chain: celoSepolia,
         transport: http()
       });
       setPublicClient(pc);
+      console.log("Public client initialized");
     } catch (err) {
       console.error("Failed to initialize public client:", err);
     }
@@ -48,6 +49,7 @@ export default function App() {
 
   const connectWallet = useCallback(async () => {
     const ethereum = (window as any).ethereum;
+    console.log("Connect attempt, ethereum detected:", !!ethereum);
     
     if (!ethereum) {
       setError("Web3 wallet not detected. Please install MetaMask or MiniPay.");
@@ -57,8 +59,8 @@ export default function App() {
     setIsConnecting(true);
     setError(null);
 
-    // AI Studio specific: Notify user if extension might be blocked by iframe
     const isIframe = window.self !== window.top;
+    console.log("Is running in iframe:", isIframe);
 
     try {
       const client = createWalletClient({
@@ -66,18 +68,31 @@ export default function App() {
         transport: custom(ethereum)
       });
 
-      // Request account access - this is where it might hang in an iframe
+      console.log("Requesting permissions first...");
+      try {
+        await ethereum.request({
+          method: 'wallet_requestPermissions',
+          params: [{ eth_accounts: {} }]
+        });
+      } catch (permError: any) {
+        console.warn("Permission request error:", permError);
+        // Continue anyway as some wallets don't support this but will still allow requestAddresses
+      }
+
+      console.log("Requesting addresses...");
       const [account] = await client.requestAddresses();
+      console.log("Account connected:", account);
       
       if (!account) {
         throw new Error("Connection request rejected or no accounts found.");
       }
 
-      // Check and switch network
       try {
+        console.log("Switching chain to Celo Sepolia...");
         await client.switchChain({ id: celoSepolia.id });
       } catch (switchError: any) {
         if (switchError.code === 4902) {
+          console.log("Chain not found, adding Celo Sepolia...");
           await client.addChain({ chain: celoSepolia });
         } else {
           console.warn("Chain switch warning:", switchError);
@@ -87,13 +102,17 @@ export default function App() {
       setAddress(account);
       setWalletClient(client);
     } catch (err: any) {
-      console.error("Connection error:", err);
+      console.error("Connection error detail:", err);
       let msg = err.message || "Failed to connect wallet.";
       
-      if (isIframe && (err.code === -32002 || msg.includes("already pending"))) {
-        msg = "Request already pending. Please check MetaMask or open the app in a new tab (top right icon) to bypass iframe restrictions.";
-      } else if (isIframe) {
-        msg = "Connection failed. Browsers often block wallet extensions in iframes. Please try opening this app in a new tab using the icon above the preview.";
+      if (isIframe) {
+        if (err.code === -32002 || msg.includes("already pending")) {
+          msg = "Request already pending. Please check MetaMask or open the app in a new tab (top right icon) to bypass iframe restrictions.";
+        } else if (msg.includes("User rejected")) {
+          msg = "Connection was rejected. Please try again.";
+        } else {
+          msg = "Connection failed. Browsers often block wallet extensions in iframes. Please try opening this app in a new tab using the icon above the preview to connect successfully.";
+        }
       }
       
       setError(msg);
@@ -166,10 +185,22 @@ export default function App() {
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-xs text-red-600"
+                    className="p-4 bg-red-50 border border-red-100 rounded-xl flex flex-col gap-3 text-xs text-red-600"
                   >
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{error}</span>
+                    </div>
+                    {window.self !== window.top && (
+                      <div className="pt-2 border-t border-red-100 mt-1">
+                        <p className="font-semibold mb-1">💡 Troubleshooting:</p>
+                        <ul className="list-disc list-inside space-y-1 opacity-80">
+                          <li>Click the "Open in new tab" icon (top right)</li>
+                          <li>Check if your wallet has a pending request</li>
+                          <li>Make sure you are logged into your wallet</li>
+                        </ul>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </motion.div>
