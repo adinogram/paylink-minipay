@@ -1,6 +1,6 @@
 {
   "name": "Celo Proof of Ship Starter",
-  "description": "A minimal Web3 starter for Celo Proof of Ship Season 2, featuring wallet connection and account display using viem.",
+  "description": "A minimal Web3 starter for Celo Proof of Ship Season 2, featuring wallet connection and account display using viem on the Alfajores testnet.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["Web3", "Celo", "Viem", "Tailwind CSS"]
 }

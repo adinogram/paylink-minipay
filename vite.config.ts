@@ -4,6 +4,15 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    'process.env': {},
+    'global': 'globalThis',
+  },
+  resolve: {
+    alias: {
+      buffer: 'buffer',
+    },
+  },
   server: {
     port: 3000,
     host: '0.0.0.0',
