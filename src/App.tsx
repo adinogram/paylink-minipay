@@ -117,7 +117,13 @@ export default function App() {
     setError(null);
 
     try {
+      // Small delay to ensure extension is fully injected in some environments
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) {
+        throw new Error("No accounts found. Please unlock your wallet.");
+      }
       const account = accounts[0] as Address;
 
       const client = createWalletClient({
@@ -143,20 +149,16 @@ export default function App() {
       setAddress(account);
       setWalletClient(client);
     } catch (err: any) {
-      console.error("Connection error:", err);
+      console.error("Connection error details:", err);
       const isIframe = window.self !== window.top;
-      const rawMsg = err.message || "Failed to connect wallet.";
+      const rawMsg = err.message || String(err);
       
-      if (isIframe) {
-        if (rawMsg.includes("Unexpected error") || rawMsg.includes("Internal error")) {
-          setError("Critical error: Browsers often block wallet extensions inside iframes. You MUST open this app in a new tab to connect successfully.");
-        } else if (err.code === -32002 || rawMsg.includes("already pending")) {
-          setError("Connection request pending. Please check your wallet extension popups.");
-        } else if (rawMsg.includes("User rejected")) {
-          setError("Connection was rejected. Please try again.");
-        } else {
-          setError(`Connection failed. Browser security often blocks wallets in iframes. Click 'Open in New Tab' below to fix.`);
-        }
+      if (rawMsg.includes("Unexpected error") || rawMsg.includes("Internal error") || rawMsg.includes("Extension context invalidated")) {
+        setError("Browser Security Block: Your wallet extension is being blocked because this app is running in an iframe. Please click 'Open in New Tab' to connect.");
+      } else if (err.code === -32002 || rawMsg.includes("already pending")) {
+        setError("Connection pending: Please check your wallet for a popup.");
+      } else if (rawMsg.includes("User rejected")) {
+        setError("Connection rejected by user.");
       } else {
         setError(rawMsg);
       }
